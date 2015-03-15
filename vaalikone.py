@@ -95,6 +95,7 @@ class Vaalikone(object):
 		# Lasketaan vertailuluvut ehdokkaille, liitetään oliomuuttujan dataan
 		self.vertailuluvut()
 		# Käydään vaalipiirit yksitellen läpi
+		tarkistusluku = 0
 		for key in sorted(self.paikkaluvut):
 			kansanedustajia_vaalipiirissa = self.paikkaluvut[key]
 			# Lasketaan käsiteltävän vaalipiirin korkeimmat vertailuluvut
@@ -112,15 +113,20 @@ class Vaalikone(object):
 			ehdokkaan_jarjestysnumero = 0
 			for i in vaalipiirin_vertailuluvut:
 				for ehdokas in self.data:
-					if ehdokas['vertailuluku'] == i:
+					if ehdokas['vertailuluku'] == i and key in ehdokas['district']:
+						tarkistusluku += 1
 						ehdokkaan_jarjestysnumero += 1
+						# Debug
+						#sys.stdout.write(str(ehdokkaan_jarjestysnumero) + ". " + str(ehdokas['vertailuluku']) + " " + ehdokas['name'] + " (" + ehdokas['party'] + ") " + ehdokas['views'] + ehdokas['district'])
 						sys.stdout.write(str(ehdokkaan_jarjestysnumero) + ". " + ehdokas['name'] + " (" + ehdokas['party'] + ") " + ehdokas['views'])
+
 						if (ehdokkaan_jarjestysnumero < kansanedustajia_vaalipiirissa):
 							sys.stdout.write(" LÄPI\n")
 						elif (ehdokkaan_jarjestysnumero == kansanedustajia_vaalipiirissa):
 							sys.stdout.write(" LÄPI\n --------------------------\n")
 						else:
-							sys.stdout.write("\n")	
+							sys.stdout.write("\n")
+		print(tarkistusluku)
 
 	def vertailuluvut(self):
 		vertailuluvut = {}
