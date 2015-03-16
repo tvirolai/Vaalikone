@@ -77,6 +77,7 @@ class Vaalikone(object):
 	def puolueidenkannatus(self):
 		kannatusluvut = {}
 		kaikki_katselut = 0
+		print("\nKANNATUKSEN JAKAUTUMINEN KOKO MAASSA:\n")
 		for ehdokas in self.data:
 			kaikki_katselut += int(ehdokas['views'])
 			if not ehdokas['party'] in kannatusluvut:
@@ -133,18 +134,23 @@ class Vaalikone(object):
 		for key in sorted(self.paikkaluvut):
 			for puolue in self.puolueet:
 				puolue_vaalipiirissa = {}
+				puolueen_aanet_vaalipiirissa = 0
 				for ehdokas in self.data:
 					if (ehdokas['party'] == puolue and key in ehdokas['district'] and int(ehdokas['views']) >= 0):
 						puolue_vaalipiirissa[ ehdokas['name'] ] = int(ehdokas['views'])
+						puolueen_aanet_vaalipiirissa += int(ehdokas['views'])
 				jarjestyspuolueessa = 0
+				#print(str(key) + " " + puolue + " " + str(puolueen_aanet_vaalipiirissa))
 				for puolueenehdokas in sorted(puolue_vaalipiirissa.items(), key=lambda x: x[1], reverse=True):
 					jarjestyspuolueessa += 1
-					vertailuluku = puolueenehdokas[1] / jarjestyspuolueessa
+					vertailuluku = puolueen_aanet_vaalipiirissa / jarjestyspuolueessa
 					vertailuluku = round(vertailuluku, 2)
 					vertailuluvut[puolueenehdokas[0]] = vertailuluku
 		for ehdokas in self.data:
 			ehdokas['vertailuluku'] = vertailuluvut[ehdokas['name']]
-		return vertailuluvut
+			# DEBUG:
+			#print(ehdokas['name'] + " " + str(vertailuluvut[ehdokas['name']]))
+		#return vertailuluvut
 
 	def ehdokkaidenkannatus_vaalipiireittain(self, piiri):
 		vaalipiiri = ""
@@ -154,8 +160,6 @@ class Vaalikone(object):
 				if (ehdokas['district'] != vaalipiiri):
 					vaalipiiri = ehdokas['district']
 					print("\n" + vaalipiiri.upper() + "\n")
-
-
 				for puolue in self.puolueet:
 					if puolue == ehdokas['party']:
 						print(ehdokas['name'] + " " + ehdokas['party'] + " " + ehdokas['views'])
@@ -179,7 +183,23 @@ class Vaalikone(object):
 		return kannatus
 
 	def laskuri(self):
-		print("\nEhdokkaita yhteensä: %d " % self.kaikkiehdokkaat)
+		for key in sorted(self.paikkaluvut):
+			vaalipiirin_nimi = ""
+			for ehdokas in self.data:
+				if key in ehdokas['district']:
+					vaalipiirin_nimi = ehdokas['district']
+					break
+			print("\n" + vaalipiirin_nimi.upper() + "\n")
+			vaalipiirin_kokonaisaanimaara = 0
+			for ehdokas in self.data:
+				if key in ehdokas['district']:
+					vaalipiirin_kokonaisaanimaara += int(ehdokas['views'])
+			#print(vaalipiirin_kokonaisaanimaara)
+			aanet_vaalipiirissa = self.kannatus_vaalipiireittain(key)
+			for aanipiiri in aanet_vaalipiirissa:
+				kannatusosuus = round((float(aanipiiri[1]) / float(vaalipiirin_kokonaisaanimaara ) * 100), 1)
+				print(aanipiiri[0] + " " + str(aanipiiri[1]) + " (" + str(kannatusosuus) + " %)")
+
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description="Vaalikone")
@@ -190,5 +210,6 @@ if __name__ == '__main__':
 	#vaalikone.tulosta()
 	#vaalikone.kannatus_vaalipiireittain()
 	#vaalikone.vertailuluvut()
-	#vaalikone.laskuri()
-	vaalikone.lapimenijat()
+	vaalikone.laskuri()
+	#vaalikone.lapimenijat()
+	vaalikone.puolueidenkannatus()
