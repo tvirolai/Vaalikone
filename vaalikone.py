@@ -41,7 +41,29 @@ class Vaalikone(object):
 			if not ehdokas['party'] in self.puolueet:
 				self.puolueet.append(ehdokas['party'])
 
-	def tulosta(self):
+		# Tähän alustetaan dict-muuttuja puolueiden paikkamäärien laskemista varten
+		# Määrät asetetaan läpimenijöiden tulostamisen yhteydessä.
+		self.paikkamaarat = {}
+		for puolue in self.puolueet:
+			self.paikkamaarat[puolue] = 0
+
+		self.paikkamaarat_nyt = {
+			"Kansallinen Kokoomus": 44,
+			"Suomen Sosialidemokraattinen Puolue": 42,
+			"Perussuomalaiset": 39,
+			"Suomen Keskusta": 35,
+			"Vasemmistoliitto": 14,
+			"Vihreä liitto": 10,
+			"Suomen ruotsalainen kansanpuolue": 9,
+			"Suomen Kristillisdemokraatit (KD)": 6
+		}
+
+		for puolue in self.puolueet:
+			if not puolue in self.paikkamaarat_nyt:
+				self.paikkamaarat_nyt[puolue] = 0
+
+	def puolueiden_kannatus_koko_maassa(self):
+		# Tulosta
 		vertailuluvut = {}
 		for key in sorted(self.paikkaluvut):
 			vaalipiirin_nimi = ""
@@ -58,14 +80,8 @@ class Vaalikone(object):
 						puolue_vaalipiirissa[ ehdokas['name'] ] = int(ehdokas['views'])
 				if len(puolue_vaalipiirissa) > 0:
 					print("\n" + puolue + "\n")
-				jarjestyspuolueessa = 0
 				for puolueenehdokas in sorted(puolue_vaalipiirissa.items(), key=lambda x: x[1], reverse=True):
-					jarjestyspuolueessa += 1
-					vertailuluku = puolueenehdokas[1] / jarjestyspuolueessa
-					vertailuluku = round(vertailuluku, 2)
-					vertailuluvut[puolueenehdokas[0]] = vertailuluku
-					print(puolueenehdokas[0] + " " + str(puolueenehdokas[1]) + " " + str(vertailuluku))
-
+					print(puolueenehdokas[0] + " " + str(puolueenehdokas[1]))
 
 	def tilastoja(self):
 		print("Ehdokkaita on yhteensä") + len(self.data)
@@ -128,14 +144,19 @@ class Vaalikone(object):
 						# Debug
 						#sys.stdout.write(str(ehdokkaan_jarjestysnumero) + ". " + str(ehdokas['vertailuluku']) + " " + ehdokas['name'] + " (" + ehdokas['party'] + ") " + ehdokas['views'] + ehdokas['district'])
 						
-						sys.stdout.write(str(ehdokkaan_jarjestysnumero) + ". " + ehdokas['name'] + " (" + ehdokas['party'] + ") " + ehdokas['views'] + " " + str(ehdokas['vertailuluku']))
+						sys.stdout.write(str(ehdokkaan_jarjestysnumero) + ". " + ehdokas['name'] + " (" + ehdokas['party'] + ") " + ehdokas['views'] )
 
 						if (ehdokkaan_jarjestysnumero < kansanedustajia_vaalipiirissa):
 							sys.stdout.write(" LÄPI\n")
+							ehdokas['lapi'] = 1
+							self.paikkamaarat[ ehdokas['party'] ] += 1
 						elif (ehdokkaan_jarjestysnumero == kansanedustajia_vaalipiirissa):
 							sys.stdout.write(" LÄPI\n --------------------------\n")
+							self.paikkamaarat[ ehdokas['party'] ] += 1
+							ehdokas['lapi'] = 1
 						else:
 							sys.stdout.write("\n")
+							ehdokas['lapi'] = 0
 		print(tarkistusluku)
 
 	def vertailuluvut(self):
@@ -239,8 +260,6 @@ class Vaalikone(object):
 		for ehdokas in self.data:
 			if ehdokas['name'] in vertailuluvut_vaaliliitoissa:
 				ehdokas['vertailuluku'] = vertailuluvut_vaaliliitoissa[ehdokas['name']]
-		print(vertailuluvut_vaaliliitoissa)
-		print(vaaliliitto_nelja)
 
 	def ehdokkaidenkannatus_vaalipiireittain(self, piiri):
 		vaalipiiri = ""
@@ -290,16 +309,43 @@ class Vaalikone(object):
 				kannatusosuus = round((float(aanipiiri[1]) / float(vaalipiirin_kokonaisaanimaara ) * 100), 1)
 				print(aanipiiri[0] + " " + str(aanipiiri[1]) + " (" + str(kannatusosuus) + " %)")
 
+	def paikkamaarien_tulostus(self):
+		paikkojen_muutos = 0
+		print("\nPUOLUEIDEN PAIKKAMÄÄRÄT UUDESSA EDUSKUNNASSA:\n")
+		for puolue in sorted(self.paikkamaarat.items(), key=lambda x: x[1], reverse=True):
+			if self.paikkamaarat_nyt[puolue[0]] > puolue[1]:
+				paikkojen_muutos = self.paikkamaarat_nyt[puolue[0]] - puolue[1]
+				print(puolue[0] + " : " + str(puolue[1]) + " paikkaa (muutos: -" + str(paikkojen_muutos) + ")")
+			elif self.paikkamaarat_nyt[puolue[0]] < puolue[1]:
+				paikkojen_muutos = puolue[1] - self.paikkamaarat_nyt[puolue[0]]
+				print(puolue[0] + " : " + str(puolue[1]) + " paikkaa (muutos: +" + str(paikkojen_muutos) + ")")
+			elif self.paikkamaarat_nyt[puolue[0]] == puolue[1]:
+				print(puolue[0] + " : " + str(puolue[1]) + " paikkaa (ei muutosta)")
+
+	def tulosta_vain_lapimenijat(self):
+		print("\nUUDET KANSANEDUSTAJAT PUOLUEITTAIN:\n")
+		for puolue in sorted(self.puolueet):
+			if (self.paikkamaarat[puolue] > 0):
+				print("\n" + puolue.upper() + "\n")
+				for ehdokas in self.data:
+					if (ehdokas['party'] == puolue and ehdokas['lapi'] == 1):
+						print(ehdokas['name'] + " (" + str(ehdokas['views']) + ")")
+
+
+
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description="Vaalikone")
 	parser.add_argument("tiedosto", help="File to process.")
 	args = parser.parse_args()
 	vaalikone = Vaalikone(args.tiedosto)
-	#vaalikone.puolueidenkannatus()
-	#vaalikone.tulosta()
+	vaalikone.puolueidenkannatus()
+	vaalikone.puolueiden_kannatus_koko_maassa()
+
 	#vaalikone.kannatus_vaalipiireittain()
 	#vaalikone.vertailuluvut()
 	#vaalikone.laskuri()
 	vaalikone.lapimenijat()
+	vaalikone.tulosta_vain_lapimenijat()
 	#vaalikone.puolueidenkannatus()
+	#vaalikone.paikkamaarien_tulostus()
