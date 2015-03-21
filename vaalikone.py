@@ -25,6 +25,13 @@ class Vaalikone(object):
 		"12": 18,
 		"13": 7
 		}
+
+		self.vaaliliitot = {
+		"01": ["Suomen Kristillisdemokraatit (KD)", "Köyhien Asialla"],
+		"02": ["Kansallinen Kokoomus", "Suomen ruotsalainen kansanpuolue"],
+		"03": ["Suomen Kommunistinen Puolue", "Kommunistinen Työväenpuolue"],
+		"13": ["Perussuomalaiset", "Suomen Kristillisdemokraatit (KD)"]
+		}
 		
 		self.kaikkiehdokkaat = 0
 
@@ -95,6 +102,7 @@ class Vaalikone(object):
 	def lapimenijat(self):
 		# Lasketaan vertailuluvut ehdokkaille, liitetään oliomuuttujan dataan
 		self.vertailuluvut()
+		self.vaaliliittojen_vertailuluvut()
 		# Käydään vaalipiirit yksitellen läpi
 		tarkistusluku = 0
 		for key in sorted(self.paikkaluvut):
@@ -119,7 +127,8 @@ class Vaalikone(object):
 						ehdokkaan_jarjestysnumero += 1
 						# Debug
 						#sys.stdout.write(str(ehdokkaan_jarjestysnumero) + ". " + str(ehdokas['vertailuluku']) + " " + ehdokas['name'] + " (" + ehdokas['party'] + ") " + ehdokas['views'] + ehdokas['district'])
-						sys.stdout.write(str(ehdokkaan_jarjestysnumero) + ". " + ehdokas['name'] + " (" + ehdokas['party'] + ") " + ehdokas['views'])
+						
+						sys.stdout.write(str(ehdokkaan_jarjestysnumero) + ". " + ehdokas['name'] + " (" + ehdokas['party'] + ") " + ehdokas['views'] + " " + str(ehdokas['vertailuluku']))
 
 						if (ehdokkaan_jarjestysnumero < kansanedustajia_vaalipiirissa):
 							sys.stdout.write(" LÄPI\n")
@@ -130,9 +139,15 @@ class Vaalikone(object):
 		print(tarkistusluku)
 
 	def vertailuluvut(self):
+		# Funktio laskee ehdokkaiden vertailuluvun ja tallentaa sen ehdokkaan tietoihin oliomuuttujassa self.data
+		# Kerätään vertailuluvut aluksi dict-muotoiseen muuttujaan ja syötetään funktion lopuksi oliomuuttujaan.
 		vertailuluvut = {}
+		# Käydään vaalipiirit läpi järjestyksessä
 		for key in sorted(self.paikkaluvut):
+			vaalipiiri = key
+			# Vaalipiirin sisällä puolueet
 			for puolue in self.puolueet:
+				# Lasketaan ensin kunkin puolueen kokonaisäänimäärä vaalipiirissä vertailuluvun laskemisen pohjaksi.
 				puolue_vaalipiirissa = {}
 				puolueen_aanet_vaalipiirissa = 0
 				for ehdokas in self.data:
@@ -146,11 +161,86 @@ class Vaalikone(object):
 					vertailuluku = puolueen_aanet_vaalipiirissa / jarjestyspuolueessa
 					vertailuluku = round(vertailuluku, 2)
 					vertailuluvut[puolueenehdokas[0]] = vertailuluku
+
 		for ehdokas in self.data:
 			ehdokas['vertailuluku'] = vertailuluvut[ehdokas['name']]
-			# DEBUG:
-			#print(ehdokas['name'] + " " + str(vertailuluvut[ehdokas['name']]))
-		#return vertailuluvut
+
+	def vaaliliittojen_vertailuluvut(self):
+		# Lasketaan erillisessä funktiossa vielä vaaliliittojen vaikutus vertailulukuihin
+		# Näiden ehdokkaiden luvut siis muiden tavoin jo aiemmin (väärin), mutta korjataan jälkikäteen oliomuuttujaan.
+		# Tämä funktio on ehkä toteutettu tarpeettoman hankalasti, mutta se toimii.
+
+		vaaliliittojen_aanet = {
+		'1': 0,
+		'2': 0,
+		'3': 0,
+		'4': 0
+		}
+
+		vertailuluvut_vaaliliitoissa = {}
+
+		vaaliliitto_yksi = {}
+		vaaliliitto_kaksi = {}
+		vaaliliitto_kolme = {}
+		vaaliliitto_nelja = {}
+
+		vaaliliittojen_ehdokkaat = 0
+
+		for ehdokas in self.data:
+			if ("01" in ehdokas['district'] and ehdokas['party'] in self.vaaliliitot["01"] ):
+				vaaliliittojen_aanet['1'] += int(ehdokas['views'])
+				vaaliliittojen_ehdokkaat += 1
+				vaaliliitto_yksi[ ehdokas['name'] ] = int(ehdokas['views'])
+			elif ("03" in ehdokas['district'] and ehdokas['party'] in self.vaaliliitot["02"]):
+				vaaliliittojen_aanet['2'] += int(ehdokas['views'])
+				vaaliliittojen_ehdokkaat += 1
+				vaaliliitto_kaksi[ ehdokas['name'] ] = int(ehdokas['views'])
+			elif ("03" in ehdokas['district'] and ehdokas['party'] in self.vaaliliitot["03"]):
+				vaaliliittojen_aanet['3'] += int(ehdokas['views'])
+				vaaliliittojen_ehdokkaat += 1
+				vaaliliitto_kolme[ ehdokas['name'] ] = int(ehdokas['views'])
+			elif ("13" in ehdokas['district'] and ehdokas['party'] in self.vaaliliitot["13"]):
+				vaaliliittojen_aanet['4'] += int(ehdokas['views'])
+				vaaliliittojen_ehdokkaat += 1
+				vaaliliitto_nelja[ ehdokas['name'] ] = int(ehdokas['views'])
+
+		jarjestysvaaliliitossa = 0
+
+		for vaaliliitonehdokas in sorted(vaaliliitto_yksi.items(), key=lambda x: x[1], reverse=True):
+			jarjestysvaaliliitossa += 1
+			vertailuluku = vaaliliittojen_aanet['1'] / jarjestysvaaliliitossa
+			vertailuluku = round(vertailuluku, 2)
+			vertailuluvut_vaaliliitoissa[vaaliliitonehdokas[0]] = vertailuluku
+
+		jarjestysvaaliliitossa = 0
+
+		for vaaliliitonehdokas in sorted(vaaliliitto_kaksi.items(), key=lambda x: x[1], reverse=True):
+			jarjestysvaaliliitossa += 1
+			vertailuluku = vaaliliittojen_aanet['2'] / jarjestysvaaliliitossa
+			vertailuluku = round(vertailuluku, 2)
+			vertailuluvut_vaaliliitoissa[vaaliliitonehdokas[0]] = vertailuluku
+
+		jarjestysvaaliliitossa = 0
+
+		for vaaliliitonehdokas in sorted(vaaliliitto_kolme.items(), key=lambda x: x[1], reverse=True):
+			jarjestysvaaliliitossa += 1
+			vertailuluku = vaaliliittojen_aanet['3'] / jarjestysvaaliliitossa
+			vertailuluku = round(vertailuluku, 2)
+			vertailuluvut_vaaliliitoissa[vaaliliitonehdokas[0]] = vertailuluku
+
+		jarjestysvaaliliitossa = 0
+
+		for vaaliliitonehdokas in sorted(vaaliliitto_nelja.items(), key=lambda x: x[1], reverse=True):
+			jarjestysvaaliliitossa += 1
+			vertailuluku = vaaliliittojen_aanet['4'] / jarjestysvaaliliitossa
+			vertailuluku = round(vertailuluku, 2)
+			vertailuluvut_vaaliliitoissa[vaaliliitonehdokas[0]] = vertailuluku
+
+		for ehdokas in self.data:
+			if ehdokas['name'] in vertailuluvut_vaaliliitoissa:
+				ehdokas['vertailuluku'] = vertailuluvut_vaaliliitoissa[ehdokas['name']]
+		print(vertailuluvut_vaaliliitoissa)
+		print(vaaliliitto_nelja)
 
 	def ehdokkaidenkannatus_vaalipiireittain(self, piiri):
 		vaalipiiri = ""
@@ -210,6 +300,6 @@ if __name__ == '__main__':
 	#vaalikone.tulosta()
 	#vaalikone.kannatus_vaalipiireittain()
 	#vaalikone.vertailuluvut()
-	vaalikone.laskuri()
-	#vaalikone.lapimenijat()
-	vaalikone.puolueidenkannatus()
+	#vaalikone.laskuri()
+	vaalikone.lapimenijat()
+	#vaalikone.puolueidenkannatus()
