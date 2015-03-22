@@ -21,10 +21,12 @@ class Vaalikone(object):
 				if ehdokas['name'].upper() == nimi.upper():
 					#print(ehdokas['name'].upper() + " " + nimi.upper() )	
 					ehdokas['edustaja'] = rivi[4]
+					ehdokas['sukupuoli'] = rivi[3]
 					next
 		for ehdokas in self.data:
 			if not 'edustaja' in ehdokas:
 				ehdokas['edustaja'] = -1
+				ehdokas['sukupuoli'] = -1
 
 		self.paikkaluvut = {
 		"01": 22,
@@ -43,6 +45,7 @@ class Vaalikone(object):
 		}
 
 		self.uusia_kansanedustajia = 0
+		self.uusia_naiskansanedustajia = 0
 
 		self.vaaliliitot = {
 		"01": ["Suomen Kristillisdemokraatit (KD)", "Köyhien Asialla"],
@@ -162,12 +165,14 @@ class Vaalikone(object):
 						# Debug
 						#sys.stdout.write(str(ehdokkaan_jarjestysnumero) + ". " + str(ehdokas['vertailuluku']) + " " + ehdokas['name'] + " (" + ehdokas['party'] + ") " + ehdokas['views'] + ehdokas['district'])
 
-						sys.stdout.write(str(ehdokkaan_jarjestysnumero) + ". " + ehdokas['name'] + " (" + ehdokas['party'] + ") " + ehdokas['views'] )
+						sys.stdout.write(str(ehdokkaan_jarjestysnumero) + ". " + ehdokas['name'] + " (" + ehdokas['party'] + ") " + ehdokas['views'] + " " + str(ehdokas['vertailuluku']) ) 
 
 						if (ehdokkaan_jarjestysnumero < kansanedustajia_vaalipiirissa):
 							if ehdokas['edustaja'] == "0":
 								sys.stdout.write(" UUSI")
 								self.uusia_kansanedustajia += 1 
+								if ehdokas['sukupuoli'] == "F":
+									self.uusia_naiskansanedustajia += 1
 							sys.stdout.write("\n")
 							ehdokas['lapi'] = 1
 							self.paikkamaarat[ ehdokas['party'] ] += 1
@@ -175,6 +180,8 @@ class Vaalikone(object):
 							if ehdokas['edustaja'] == "0":
 								sys.stdout.write(" UUSI")
 								self.uusia_kansanedustajia += 1
+								if ehdokas['sukupuoli'] == "F":
+									self.uusia_naiskansanedustajia += 1
 							sys.stdout.write("\n --------------------------\n")
 							self.paikkamaarat[ ehdokas['party'] ] += 1
 							ehdokas['lapi'] = 1
@@ -202,8 +209,9 @@ class Vaalikone(object):
 					if (ehdokas['party'] == puolue and key in ehdokas['district'] and int(ehdokas['views']) >= 0):
 						puolue_vaalipiirissa[ ehdokas['name'] ] = int(ehdokas['views'])
 						puolueen_aanet_vaalipiirissa += int(ehdokas['views'])
+
 				jarjestyspuolueessa = 0
-				#print(str(key) + " " + puolue + " " + str(puolueen_aanet_vaalipiirissa))
+
 				for puolueenehdokas in sorted(puolue_vaalipiirissa.items(), key=lambda x: x[1], reverse=True):
 					jarjestyspuolueessa += 1
 					vertailuluku = puolueen_aanet_vaalipiirissa / jarjestyspuolueessa
@@ -363,7 +371,10 @@ class Vaalikone(object):
 							print("")
 		uusien_osuus = float(self.uusia_kansanedustajia) / 200 * 100
 		uusien_osuus = round(uusien_osuus, 2)
+		naisten_osuus = float(self.uusia_naiskansanedustajia) / 200 * 100
+		naisten_osuus = round(naisten_osuus, 2)
 		print("\nUusia kansanedustajia: " + str(self.uusia_kansanedustajia) + " (" + str(uusien_osuus) + " %)" )
+		print("Uusista kansanedustajista naisia: " + str(self.uusia_naiskansanedustajia) + " (" + str(naisten_osuus) + " %)")
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description="Vaalikone")
@@ -375,7 +386,7 @@ if __name__ == '__main__':
 
 	#vaalikone.kannatus_vaalipiireittain()
 	#vaalikone.vertailuluvut()
-	#vaalikone.laskuri()
+	vaalikone.laskuri()
 	vaalikone.lapimenijat()
 	vaalikone.tulosta_vain_lapimenijat()
 	#vaalikone.puolueidenkannatus()
