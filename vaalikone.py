@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*
 
-import json, argparse, operator, sys
-from pprint import pprint
+import json, argparse, operator, sys, csv
 
 class Vaalikone(object):
 
@@ -10,6 +9,23 @@ class Vaalikone(object):
 		json_data = open(tiedosto, 'r')
 		self.data = json.load(json_data)
 		json_data.close()
+
+		# Haetaan Ylen vaalikoneen avoimena datana julkaistusta sisällöstä lisätietoja
+		# Listan formaatti: sukunimi, etunimi, ikä, sukupuoli, toimiiko kansanedustajana (0, 1)
+		with open('vastaukset.csv', 'rt') as file:
+			self.lisatiedot = list(csv.reader(file))
+
+		for rivi in self.lisatiedot:
+			nimi = rivi[1] + " " + rivi[0]
+			for ehdokas in self.data:
+				if ehdokas['name'].upper() == nimi.upper():
+					#print(ehdokas['name'].upper() + " " + nimi.upper() )	
+					ehdokas['edustaja'] = rivi[4]
+					next
+		for ehdokas in self.data:
+			if not 'edustaja' in ehdokas:
+				ehdokas['edustaja'] = -1
+
 		self.paikkaluvut = {
 		"01": 22,
 		"02": 35,
@@ -25,6 +41,8 @@ class Vaalikone(object):
 		"12": 18,
 		"13": 7
 		}
+
+		self.uusia_kansanedustajia = 0
 
 		self.vaaliliitot = {
 		"01": ["Suomen Kristillisdemokraatit (KD)", "Köyhien Asialla"],
@@ -143,18 +161,27 @@ class Vaalikone(object):
 						ehdokkaan_jarjestysnumero += 1
 						# Debug
 						#sys.stdout.write(str(ehdokkaan_jarjestysnumero) + ". " + str(ehdokas['vertailuluku']) + " " + ehdokas['name'] + " (" + ehdokas['party'] + ") " + ehdokas['views'] + ehdokas['district'])
-						
+
 						sys.stdout.write(str(ehdokkaan_jarjestysnumero) + ". " + ehdokas['name'] + " (" + ehdokas['party'] + ") " + ehdokas['views'] )
 
 						if (ehdokkaan_jarjestysnumero < kansanedustajia_vaalipiirissa):
-							sys.stdout.write(" LÄPI\n")
+							if ehdokas['edustaja'] == "0":
+								sys.stdout.write(" UUSI")
+								self.uusia_kansanedustajia += 1 
+							sys.stdout.write("\n")
 							ehdokas['lapi'] = 1
 							self.paikkamaarat[ ehdokas['party'] ] += 1
 						elif (ehdokkaan_jarjestysnumero == kansanedustajia_vaalipiirissa):
-							sys.stdout.write(" LÄPI\n --------------------------\n")
+							if ehdokas['edustaja'] == "0":
+								sys.stdout.write(" UUSI")
+								self.uusia_kansanedustajia += 1
+							sys.stdout.write("\n --------------------------\n")
 							self.paikkamaarat[ ehdokas['party'] ] += 1
 							ehdokas['lapi'] = 1
 						else:
+							if ehdokas['edustaja'] == "1":
+								sys.stdout.write(" PUTOAA")
+
 							sys.stdout.write("\n")
 							ehdokas['lapi'] = 0
 		print(tarkistusluku)
@@ -329,18 +356,22 @@ class Vaalikone(object):
 				print("\n" + puolue.upper() + "\n")
 				for ehdokas in self.data:
 					if (ehdokas['party'] == puolue and ehdokas['lapi'] == 1):
-						print(ehdokas['name'] + " (" + str(ehdokas['views']) + ")")
-
-
-
+						sys.stdout.write(ehdokas['name'] + " (" + str(ehdokas['views']) + ")")
+						if (ehdokas['edustaja'] == "0"):
+							sys.stdout.write(" UUSI\n")
+						else:
+							print("")
+		uusien_osuus = float(self.uusia_kansanedustajia) / 200 * 100
+		uusien_osuus = round(uusien_osuus, 2)
+		print("\nUusia kansanedustajia: " + str(self.uusia_kansanedustajia) + " (" + str(uusien_osuus) + " %)" )
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description="Vaalikone")
 	parser.add_argument("tiedosto", help="File to process.")
 	args = parser.parse_args()
 	vaalikone = Vaalikone(args.tiedosto)
-	vaalikone.puolueidenkannatus()
-	vaalikone.puolueiden_kannatus_koko_maassa()
+	#vaalikone.puolueidenkannatus()
+	#vaalikone.puolueiden_kannatus_koko_maassa()
 
 	#vaalikone.kannatus_vaalipiireittain()
 	#vaalikone.vertailuluvut()
