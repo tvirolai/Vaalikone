@@ -17,12 +17,11 @@ class Vaalikone(object):
 
 		for rivi in self.lisatiedot:
 			nimi = rivi[1] + " " + rivi[0]
+
 			for ehdokas in self.data:
-				if ehdokas['name'].upper() == nimi.upper():
-					#print(ehdokas['name'].upper() + " " + nimi.upper() )	
+				if self.normalisoi(ehdokas['name']) == self.normalisoi(nimi):
 					ehdokas['edustaja'] = rivi[4]
 					ehdokas['sukupuoli'] = rivi[3]
-					next
 		for ehdokas in self.data:
 			if not 'edustaja' in ehdokas:
 				ehdokas['edustaja'] = -1
@@ -108,7 +107,6 @@ class Vaalikone(object):
 		print("Ehdokkaita on yhteensä") + len(self.data)
 		iat = []
 		for ehdokas in self.data:
-			#print ehdokas['name'] + " : " + ehdokas['age'] + " : " + ehdokas['party']
 			ika = ehdokas['age']
 			ika = [int(s) for s in ika.split() if s.isdigit()]
 			# Karsitaan tyhjät arvot
@@ -136,10 +134,10 @@ class Vaalikone(object):
 			print(str(numero) + ". " + puolue[0] + " - " + str(puolue[1]) + " ääntä (" + str(osuus) + " %)")
 		print("Ääniä annettu yhteensä %d" % kaikki_katselut)
 
-	def lapimenijat(self):
+	def tulosta_lapimenijat(self):
 		# Lasketaan vertailuluvut ehdokkaille, liitetään oliomuuttujan dataan
-		self.vertailuluvut()
-		self.vaaliliittojen_vertailuluvut()
+		self.laske_vertailuluvut()
+		#self.laske_vaaliliittojen_vertailuluvut()
 		# Käydään vaalipiirit yksitellen läpi
 		tarkistusluku = 0
 		for key in sorted(self.paikkaluvut):
@@ -193,7 +191,7 @@ class Vaalikone(object):
 							ehdokas['lapi'] = 0
 		print(tarkistusluku)
 
-	def vertailuluvut(self):
+	def laske_vertailuluvut(self):
 		# Funktio laskee ehdokkaiden vertailuluvun ja tallentaa sen ehdokkaan tietoihin oliomuuttujassa self.data
 		# Kerätään vertailuluvut aluksi dict-muotoiseen muuttujaan ja syötetään funktion lopuksi oliomuuttujaan.
 		vertailuluvut = {}
@@ -221,7 +219,6 @@ class Vaalikone(object):
 		for ehdokas in self.data:
 			ehdokas['vertailuluku'] = vertailuluvut[ehdokas['name']]
 
-	def vaaliliittojen_vertailuluvut(self):
 		# Lasketaan erillisessä funktiossa vielä vaaliliittojen vaikutus vertailulukuihin
 		# Näiden ehdokkaiden luvut siis muiden tavoin jo aiemmin (väärin), mutta korjataan jälkikäteen oliomuuttujaan.
 		# Tämä funktio on ehkä toteutettu tarpeettoman hankalasti, mutta se toimii.
@@ -326,7 +323,7 @@ class Vaalikone(object):
 		kannatus = [x for x in sorted(puolueet_vaalipiireittain.items(), key=lambda x: x[1], reverse=True)]
 		return kannatus
 
-	def laskuri(self):
+	def tulosta_kannatusosuudet_vaalipiireittain(self):
 		for key in sorted(self.paikkaluvut):
 			vaalipiirin_nimi = ""
 			for ehdokas in self.data:
@@ -344,7 +341,7 @@ class Vaalikone(object):
 				kannatusosuus = round((float(aanipiiri[1]) / float(vaalipiirin_kokonaisaanimaara ) * 100), 1)
 				print(aanipiiri[0] + " " + str(aanipiiri[1]) + " (" + str(kannatusosuus) + " %)")
 
-	def paikkamaarien_tulostus(self):
+	def tulosta_puolueiden_paikkamaarat(self):
 		paikkojen_muutos = 0
 		print("\nPUOLUEIDEN PAIKKAMÄÄRÄT UUDESSA EDUSKUNNASSA:\n")
 		for puolue in sorted(self.paikkamaarat.items(), key=lambda x: x[1], reverse=True):
@@ -376,18 +373,29 @@ class Vaalikone(object):
 		print("\nUusia kansanedustajia: " + str(self.uusia_kansanedustajia) + " (" + str(uusien_osuus) + " %)" )
 		print("Uusista kansanedustajista naisia: " + str(self.uusia_naiskansanedustajia) + " (" + str(naisten_osuus) + " %)")
 
+	def normalisoi(self, nimi):
+		nimi = " ".join(nimi.upper().split())
+		return nimi
+
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description="Vaalikone")
 	parser.add_argument("tiedosto", help="File to process.")
+	parser.add_argument("-l", "--lista", help="Tulosta vaalipiireittäin jaoteltu lista kaikista ehdokkaista (läpimenijät, katselukerrat, vertailuluvut)", action='store_true')
+	parser.add_argument("-k", "--kannatus", help="Tulosta äänien jakautuminen puolueittain koko maassa", action='store_true')
+
 	args = parser.parse_args()
 	vaalikone = Vaalikone(args.tiedosto)
+	if args.lista:
+		vaalikone.tulosta_lapimenijat()
+		vaalikone.tulosta_puolueiden_paikkamaarat()
+	if args.kannatus:
+		vaalikone.puolueidenkannatus()
+
 	#vaalikone.puolueidenkannatus()
 	#vaalikone.puolueiden_kannatus_koko_maassa()
 
 	#vaalikone.kannatus_vaalipiireittain()
-	#vaalikone.vertailuluvut()
-	vaalikone.laskuri()
-	vaalikone.lapimenijat()
-	vaalikone.tulosta_vain_lapimenijat()
+	#vaalikone.tulosta_kannatusosuudet_vaalipiireittain()
+	#vaalikone.tulosta_vain_lapimenijat()
 	#vaalikone.puolueidenkannatus()
-	#vaalikone.paikkamaarien_tulostus()
+	
